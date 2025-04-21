@@ -7,6 +7,12 @@ export class UserDto {
     @Expose()
     email: string;
 
+    @Expose()
+    color: string;
+
+    @Expose()
+    isOnline: boolean;
+
     @Exclude()
     password: string;
 

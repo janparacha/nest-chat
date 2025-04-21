@@ -14,6 +14,8 @@ const class_transformer_1 = require("class-transformer");
 class UserDto {
     id;
     email;
+    color;
+    isOnline;
     password;
     constructor(partial) {
         Object.assign(this, partial);
@@ -28,6 +30,14 @@ __decorate([
     (0, class_transformer_1.Expose)(),
     __metadata("design:type", String)
 ], UserDto.prototype, "email", void 0);
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", String)
+], UserDto.prototype, "color", void 0);
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", Boolean)
+], UserDto.prototype, "isOnline", void 0);
 __decorate([
     (0, class_transformer_1.Exclude)(),
     __metadata("design:type", String)

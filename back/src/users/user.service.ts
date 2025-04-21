@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import * as bcryptjs from "bcryptjs";
-import { PrismaService } from "../prisma.service";
-import { UserDto } from "./dto/user.dto";
 import { plainToInstance } from "class-transformer";
+import { PrismaService } from "../services/prisma.service";
+import { UserDto } from "./dto/user.dto";
 @Injectable()
 export class UserService {
     constructor(private prisma: PrismaService) {}
@@ -24,5 +24,25 @@ export class UserService {
         } catch (error) {
             throw new BadRequestException(error.message);
         }
+    }
+
+    async findOne(email: string, showPassword: boolean = false): Promise<UserDto | null> {
+        try {
+            const user = await this.prisma.user.findUnique({
+                where: { email },
+            });
+            if (!showPassword) {
+                return plainToInstance(UserDto, user, {
+                    excludeExtraneousValues: true,
+                });
+            }
+            return user;
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+    comparePassword(inputPassword: string, userPassword: string): boolean {
+        return bcryptjs.compareSync(inputPassword, userPassword);
     }
 }

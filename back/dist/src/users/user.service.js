@@ -12,9 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
 const bcryptjs = require("bcryptjs");
-const prisma_service_1 = require("../prisma.service");
-const user_dto_1 = require("./dto/user.dto");
 const class_transformer_1 = require("class-transformer");
+const prisma_service_1 = require("../services/prisma.service");
+const user_dto_1 = require("./dto/user.dto");
 let UserService = class UserService {
     prisma;
     constructor(prisma) {
@@ -37,6 +37,25 @@ let UserService = class UserService {
         catch (error) {
             throw new common_1.BadRequestException(error.message);
         }
+    }
+    async findOne(email, showPassword = false) {
+        try {
+            const user = await this.prisma.user.findUnique({
+                where: { email },
+            });
+            if (!showPassword) {
+                return (0, class_transformer_1.plainToInstance)(user_dto_1.UserDto, user, {
+                    excludeExtraneousValues: true,
+                });
+            }
+            return user;
+        }
+        catch (error) {
+            throw new common_1.BadRequestException(error.message);
+        }
+    }
+    comparePassword(inputPassword, userPassword) {
+        return bcryptjs.compareSync(inputPassword, userPassword);
     }
 };
 exports.UserService = UserService;
