@@ -7,4 +7,5 @@ export declare class AuthService {
     constructor(usersService: UserService, jwtService: JwtService);
     signIn(data: CreateUserDto): Promise<any>;
     verifyToken(token: string): Promise<Boolean>;
+    decodeToken(token: string): Promise<any>;
 }

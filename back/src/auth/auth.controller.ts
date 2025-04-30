@@ -24,7 +24,14 @@ export class AuthController {
         }
         const token = authHeader.replace("Bearer ", "").trim();
 
-        return this.authService.verifyToken(token);
+        const isValid = await this.authService.verifyToken(token);
+        if (!isValid) {
+            throw new UnauthorizedException("Token invalide");
+        }
+
+        // Décoder le token pour obtenir les informations de l'utilisateur
+        const decoded = await this.authService.decodeToken(token);
+        return decoded;
     }
 
     // @UseGuards(AuthGuard)

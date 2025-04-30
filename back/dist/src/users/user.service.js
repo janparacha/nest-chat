@@ -54,6 +54,27 @@ let UserService = class UserService {
             throw new common_1.BadRequestException(error.message);
         }
     }
+    async updateUserStatus(userId, isOnline) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isOnline },
+        });
+    }
+    async updateUserColor(userId, color) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { color },
+        });
+    }
+    async createMessage(data) {
+        return this.prisma.message.create({
+            data,
+            include: {
+                sender: true,
+                receiver: true,
+            },
+        });
+    }
     comparePassword(inputPassword, userPassword) {
         return bcryptjs.compareSync(inputPassword, userPassword);
     }

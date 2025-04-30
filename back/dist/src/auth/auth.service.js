@@ -43,6 +43,14 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException("Token invalide");
         }
     }
+    async decodeToken(token) {
+        try {
+            return await this.jwtService.verifyAsync(token);
+        }
+        catch (error) {
+            throw new common_1.UnauthorizedException("Token invalide");
+        }
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

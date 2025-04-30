@@ -35,7 +35,12 @@ let AuthController = class AuthController {
             throw new common_1.UnauthorizedException("Invalid token format");
         }
         const token = authHeader.replace("Bearer ", "").trim();
-        return this.authService.verifyToken(token);
+        const isValid = await this.authService.verifyToken(token);
+        if (!isValid) {
+            throw new common_1.UnauthorizedException("Token invalide");
+        }
+        const decoded = await this.authService.decodeToken(token);
+        return decoded;
     }
 };
 exports.AuthController = AuthController;

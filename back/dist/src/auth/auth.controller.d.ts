@@ -8,5 +8,5 @@ export declare class AuthController {
     constructor(authService: AuthService, userService: UserService);
     login(data: CreateUserDto): Promise<any>;
     register(data: CreateUserDto): Promise<UserDto>;
-    verifyToken(authHeader: string): Promise<Boolean>;
+    verifyToken(authHeader: string): Promise<any>;
 }

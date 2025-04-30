@@ -6,12 +6,12 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = "linux-arm64-openssl-3.0.x"
+  binaryTargets = ["linux-arm64-openssl-3.0.x", "darwin-arm64"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://nest:nest@postgres:5432/nest"
+  url      = "postgresql://nest:nest@localhost:5432/nest"
 }
 
 model User {

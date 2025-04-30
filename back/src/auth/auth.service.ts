@@ -32,4 +32,12 @@ export class AuthService {
             throw new UnauthorizedException("Token invalide");
         }
     }
+
+    async decodeToken(token: string): Promise<any> {
+        try {
+            return await this.jwtService.verifyAsync(token);
+        } catch (error) {
+            throw new UnauthorizedException("Token invalide");
+        }
+    }
 }
