@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -9,8 +11,19 @@ const Chat = () => {
   const [selectedColor, setSelectedColor] = useState('#3498db');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const messagesEndRef = useRef(null);
   const socketRef = useRef();
   const navigate = useNavigate();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -41,6 +54,8 @@ const Chat = () => {
     
     socketRef.current = io('http://localhost:3000', {
       auth: { token },
+      withCredentials: true,  // Ajout de cette option pour les cookies
+      transports: ['websocket']  // Forcer l'utilisation de WebSocket
     });
 
     socketRef.current.on('connect', () => {
@@ -49,6 +64,7 @@ const Chat = () => {
 
     socketRef.current.on('connect_error', (error) => {
       console.error('Erreur de connexion:', error);
+      console.error('Détails de l\'erreur:', error.message);
     });
 
     socketRef.current.on('userConnected', (user) => {
@@ -117,41 +133,66 @@ const Chat = () => {
     }
   };
 
+  const handleTyping = () => {
+    if (socketRef.current) {
+      socketRef.current.emit('typing', { isTyping: true });
+      setTimeout(() => {
+        socketRef.current.emit('typing', { isTyping: false });
+      }, 2000);
+    }
+  };
+
+  useEffect(() => {
+    if (socketRef.current) {
+      socketRef.current.on('userTyping', ({ userId, isTyping }) => {
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          if (isTyping) {
+            newSet.add(userId);
+          } else {
+            newSet.delete(userId);
+          }
+          return newSet;
+        });
+      });
+    }
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-4">
+      <div className="w-64 bg-white shadow-lg flex flex-col">
+        <div className="p-4 border-b">
           <h2 className="text-xl font-semibold mb-4">Utilisateurs en ligne</h2>
           <div className="space-y-2">
             {users.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100"
+                className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors duration-200"
               >
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: user.color }}
                 />
-                <span>{user.email}</span>
+                <span className="truncate">{user.email}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="p-4 border-t">
+        <div className="p-4 border-t mt-auto">
           <button
             onClick={() => setShowColorPicker(!showColorPicker)}
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
           >
             Changer ma couleur
           </button>
           {showColorPicker && (
-            <div className="mt-2 p-2 bg-white rounded shadow">
+            <div className="mt-2 p-2 bg-white rounded-lg shadow-lg">
               <input
                 type="color"
                 value={selectedColor}
                 onChange={(e) => handleColorChange(e.target.value)}
-                className="w-full"
+                className="w-full h-10 rounded cursor-pointer"
               />
             </div>
           )}
@@ -174,19 +215,29 @@ const Chat = () => {
                 }`}
               >
                 <div
-                  className="max-w-xs p-3 rounded-lg"
+                  className="max-w-xs p-3 rounded-lg shadow-md"
                   style={{
                     backgroundColor: msg.sender.color,
                     color: 'white',
                   }}
                 >
                   <div className="text-sm font-semibold">{msg.sender.email}</div>
-                  <div>{msg.content}</div>
+                  <div className="mt-1">{msg.content}</div>
+                  <div className="text-xs opacity-75 mt-1">
+                    {format(new Date(msg.createdAt || Date.now()), 'HH:mm', { locale: fr })}
+                  </div>
                 </div>
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
+
+        {typingUsers.size > 0 && (
+          <div className="px-4 py-2 text-sm text-gray-500 italic">
+            {Array.from(typingUsers).length} utilisateur(s) en train d'écrire...
+          </div>
+        )}
 
         <form onSubmit={handleSendMessage} className="p-4 bg-white border-t">
           <div className="flex space-x-2">
@@ -194,12 +245,13 @@ const Chat = () => {
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onKeyPress={handleTyping}
+              className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow duration-200"
               placeholder="Écrivez votre message..."
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
             >
               Envoyer
             </button>

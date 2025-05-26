@@ -122,4 +122,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.error('Erreur lors de l\'envoi du message:', error);
     }
   }
+
+  @SubscribeMessage('typing')
+  async handleTyping(client: Socket, payload: { isTyping: boolean }) {
+    try {
+      const token = client.handshake.auth.token;
+      if (!token) {
+        return;
+      }
+
+      const decoded = await this.jwtService.verifyAsync(token);
+      const user = await this.userService.findOne(decoded.email);
+      
+      if (!user) {
+        return;
+      }
+
+      // Émettre l'événement à tous les clients sauf l'émetteur
+      client.broadcast.emit('userTyping', {
+        userId: user.id,
+        isTyping: payload.isTyping
+      });
+    } catch (error) {
+      console.error('Erreur lors de la gestion de l\'événement typing:', error);
+    }
+  }
 } 
