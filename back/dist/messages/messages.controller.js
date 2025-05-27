@@ -48,4 +48,3 @@ exports.MessagesController = MessagesController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [messages_service_1.MessagesService])
 ], MessagesController);
-//# sourceMappingURL=messages.controller.js.map

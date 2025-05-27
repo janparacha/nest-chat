@@ -107,4 +107,3 @@ exports.ChatGateway = ChatGateway = __decorate([
         users_service_1.UsersService,
         prisma_service_1.PrismaService])
 ], ChatGateway);
-//# sourceMappingURL=chat.gateway.js.map

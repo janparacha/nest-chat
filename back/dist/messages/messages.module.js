@@ -21,4 +21,3 @@ exports.MessagesModule = MessagesModule = __decorate([
         exports: [messages_service_1.MessagesService],
     })
 ], MessagesModule);
-//# sourceMappingURL=messages.module.js.map

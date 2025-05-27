@@ -22,4 +22,3 @@ exports.AppModule = AppModule = __decorate([
         providers: [prisma_service_1.PrismaService],
     })
 ], AppModule);
-//# sourceMappingURL=app.module.js.map

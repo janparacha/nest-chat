@@ -5,23 +5,19 @@ import Register from './components/Register'
 import Chat from './components/Chat'
 import axios from 'axios'
 
-// Fonction pour générer un ID de session unique
 const generateSessionId = () => {
-  // Récupérer toutes les sessions existantes
-  const existingSessions = Object.keys(localStorage)
+    const existingSessions = Object.keys(localStorage)
     .filter(key => key.startsWith('session_'))
     .map(key => parseInt(key.split('_')[1]))
     .filter(id => !isNaN(id))
 
-  // Trouver le premier ID disponible
-  let newId = 1
+    let newId = 1
   while (existingSessions.includes(newId)) {
     newId++
   }
   return newId
 }
 
-// Récupérer ou créer un ID de session
 const getSessionId = () => {
   const sessionId = localStorage.getItem('current_session')
   if (sessionId) {
@@ -38,8 +34,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [sessionId] = useState(getSessionId)
 
-  // Configurer axios pour inclure le token dans toutes les requêtes
-  useEffect(() => {
+    useEffect(() => {
     const token = localStorage.getItem(`token_${sessionId}`)
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -49,8 +44,7 @@ function App() {
     }
   }, [sessionId])
 
-  // Fonction pour valider le token
-  const validateToken = async () => {
+    const validateToken = async () => {
     try {
       const token = localStorage.getItem(`token_${sessionId}`)
       const userData = localStorage.getItem(`user_${sessionId}`)
@@ -63,8 +57,7 @@ function App() {
         return
       }
 
-      // Configurer le token dans les headers avant la requête
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
       console.log('Validation du token...')
       const response = await axios.get('http://localhost:3000/users/me')
@@ -73,8 +66,7 @@ function App() {
       if (response.data) {
         setIsAuthenticated(true)
         setUser(response.data)
-        // Mettre à jour les données utilisateur dans le localStorage
-        localStorage.setItem(`user_${sessionId}`, JSON.stringify(response.data))
+                localStorage.setItem(`user_${sessionId}`, JSON.stringify(response.data))
         console.log('Utilisateur authentifié:', response.data)
       } else {
         throw new Error('Invalid response from /users/me')

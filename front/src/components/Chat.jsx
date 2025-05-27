@@ -4,22 +4,16 @@ import axios from 'axios'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-// Composant pour la liste des utilisateurs
 const UserList = ({ users, selectedUser, onSelectUser }) => (
   <div className="overflow-y-auto h-[calc(100vh-120px)]">
     {users.map((u) => (
       <div
         key={u.id}
         onClick={() => onSelectUser(u)}
-        className={`p-4 cursor-pointer hover:bg-gray-50 ${
-          selectedUser?.id === u.id ? 'bg-gray-100' : ''
-        }`}
+        className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedUser?.id === u.id ? 'bg-gray-100' : ''
+          }`}
       >
         <div className="flex items-center">
-          <div
-            className="w-3 h-3 rounded-full mr-2"
-            style={{ backgroundColor: u.color }}
-          />
           <span>{u.email}</span>
         </div>
       </div>
@@ -27,7 +21,6 @@ const UserList = ({ users, selectedUser, onSelectUser }) => (
   </div>
 )
 
-// Composant pour l'en-tête avec les informations de l'utilisateur
 const ChatHeader = ({ user, onLogout, currentColor, onColorChange }) => (
   <div className="p-4 border-b">
     <div className="flex items-center justify-between">
@@ -51,12 +44,10 @@ const ChatHeader = ({ user, onLogout, currentColor, onColorChange }) => (
   </div>
 )
 
-// Composant pour un message individuel
 const Message = ({ message, isOwnMessage }) => (
   <div
-    className={`mb-4 ${
-      isOwnMessage ? 'text-right' : 'text-left'
-    }`}
+    className={`mb-4 ${isOwnMessage ? 'text-right' : 'text-left'
+      }`}
   >
     <div
       className={`inline-block p-3 rounded-lg text-white`}
@@ -72,7 +63,6 @@ const Message = ({ message, isOwnMessage }) => (
   </div>
 )
 
-// Composant pour la zone de messages
 const MessageList = ({ messages, currentUserId, messagesEndRef }) => (
   <div className="flex-1 overflow-y-auto p-4">
     {messages.map((message) => (
@@ -86,7 +76,6 @@ const MessageList = ({ messages, currentUserId, messagesEndRef }) => (
   </div>
 )
 
-// Composant pour le formulaire d'envoi de message
 const MessageForm = ({ newMessage, onMessageChange, onSendMessage, isConnected }) => (
   <form onSubmit={onSendMessage} className="p-4 bg-white shadow">
     <div className="flex">
@@ -100,11 +89,10 @@ const MessageForm = ({ newMessage, onMessageChange, onSendMessage, isConnected }
       />
       <button
         type="submit"
-        className={`px-4 py-2 text-white rounded-r ${
-          isConnected
+        className={`px-4 py-2 text-white rounded-r ${isConnected
             ? 'bg-blue-500 hover:bg-blue-600'
             : 'bg-gray-400 cursor-not-allowed'
-        }`}
+          }`}
         disabled={!isConnected}
       >
         Envoyer
@@ -193,7 +181,7 @@ function Chat({ user, onLogout, sessionId }) {
 
     socketRef.current.on('userConnected', (connectedUser) => {
       if (connectedUser.id === user.id) return
-      
+
       setUsers((prevUsers) => {
         if (prevUsers.find(u => u.id === connectedUser.id)) {
           return prevUsers
