@@ -2,14 +2,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Copier les fichiers de configuration
 COPY package*.json ./
 
+# Installer les dépendances
 RUN npm install
 
+# Copier le reste des fichiers
 COPY . .
 
-RUN npm run build
+EXPOSE 5173
 
-EXPOSE 3001
-
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3001"] 
+CMD ["npm", "run", "dev"] 

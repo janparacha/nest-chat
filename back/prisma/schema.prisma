@@ -1,25 +1,20 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["linux-arm64-openssl-3.0.x", "darwin-arm64"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://nest:nest@localhost:5432/nest"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id               String    @id @default(uuid())
   email            String    @unique
   password         String
-  isOnline         Boolean   @default(false)
-  color            String    @default("#3498db") // couleur de la bulle
+  color            String    @default("#3498db")
   messagesSent     Message[] @relation("SentMessages")
   messagesReceived Message[] @relation("ReceivedMessages")
   createdAt        DateTime  @default(now())
@@ -28,9 +23,10 @@ model User {
 model Message {
   id         String   @id @default(uuid())
   content    String
+  color      String   @default("#3498db")
   sender     User     @relation("SentMessages", fields: [senderId], references: [id])
   senderId   String
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   receiverId String
   createdAt  DateTime @default(now())
-}
+} 

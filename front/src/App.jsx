@@ -1,21 +1,155 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import Chat from './components/Chat';
-import './App.css';
+import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Login from './components/Login'
+import Register from './components/Register'
+import Chat from './components/Chat'
+import axios from 'axios'
+
+// Fonction pour générer un ID de session unique
+const generateSessionId = () => {
+  // Récupérer toutes les sessions existantes
+  const existingSessions = Object.keys(localStorage)
+    .filter(key => key.startsWith('session_'))
+    .map(key => parseInt(key.split('_')[1]))
+    .filter(id => !isNaN(id))
+
+  // Trouver le premier ID disponible
+  let newId = 1
+  while (existingSessions.includes(newId)) {
+    newId++
+  }
+  return newId
+}
+
+// Récupérer ou créer un ID de session
+const getSessionId = () => {
+  const sessionId = localStorage.getItem('current_session')
+  if (sessionId) {
+    return parseInt(sessionId)
+  }
+  const newSessionId = generateSessionId()
+  localStorage.setItem('current_session', newSessionId.toString())
+  return newSessionId
+}
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [sessionId] = useState(getSessionId)
+
+  // Configurer axios pour inclure le token dans toutes les requêtes
+  useEffect(() => {
+    const token = localStorage.getItem(`token_${sessionId}`)
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      validateToken()
+    } else {
+      setIsLoading(false)
+    }
+  }, [sessionId])
+
+  // Fonction pour valider le token
+  const validateToken = async () => {
+    try {
+      const token = localStorage.getItem(`token_${sessionId}`)
+      const userData = localStorage.getItem(`user_${sessionId}`)
+
+      if (!token || !userData) {
+        console.log('Pas de token ou de données utilisateur trouvés')
+        setIsAuthenticated(false)
+        setUser(null)
+        setIsLoading(false)
+        return
+      }
+
+      // Configurer le token dans les headers avant la requête
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+      console.log('Validation du token...')
+      const response = await axios.get('http://localhost:3000/users/me')
+      console.log('Réponse de /users/me:', response.data)
+
+      if (response.data) {
+        setIsAuthenticated(true)
+        setUser(response.data)
+        // Mettre à jour les données utilisateur dans le localStorage
+        localStorage.setItem(`user_${sessionId}`, JSON.stringify(response.data))
+        console.log('Utilisateur authentifié:', response.data)
+      } else {
+        throw new Error('Invalid response from /users/me')
+      }
+    } catch (error) {
+      console.error('Erreur lors de la validation du token:', error)
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem(`token_${sessionId}`)
+        localStorage.removeItem(`user_${sessionId}`)
+        delete axios.defaults.headers.common['Authorization']
+      }
+      setIsAuthenticated(false)
+      setUser(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAuth = (userData, token) => {
+    localStorage.setItem(`token_${sessionId}`, token)
+    localStorage.setItem(`user_${sessionId}`, JSON.stringify(userData))
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    setIsAuthenticated(true)
+    setUser(userData)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem(`token_${sessionId}`)
+    localStorage.removeItem(`user_${sessionId}`)
+    delete axios.defaults.headers.common['Authorization']
+    setIsAuthenticated(false)
+    setUser(null)
+  }
+
+  if (isLoading) {
+    return <div>Chargement...</div>
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/chat" element={<Chat />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <Login onAuth={handleAuth} />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <Register onAuth={handleAuth} />
+            )
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            isAuthenticated ? (
+              <Chat user={user} onLogout={handleLogout} sessionId={sessionId} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
-  );
+  )
 }
 
-export default App;
+export default App 

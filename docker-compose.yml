@@ -6,16 +6,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/nestchat
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/chat
+      - JWT_SECRET=your-secret-key
+    volumes:
+      - ./back:/app
+      - /app/node_modules
     depends_on:
       - db
 
   frontend:
     build: ./front
     ports:
-      - "3001:3001"
-    environment:
-      - REACT_APP_API_URL=http://localhost:3000
+      - "5173:5173"
+    volumes:
+      - ./front:/app
+      - /app/node_modules
     depends_on:
       - backend
 
@@ -26,17 +31,9 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nestchat
+      - POSTGRES_DB=chat
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
-
-
-
-
-
-
-
-  
+  postgres_data: 

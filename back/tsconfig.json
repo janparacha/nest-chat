@@ -6,12 +6,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./",
     "baseUrl": "./",
+    "incremental": true,
     "skipLibCheck": true,
-    "incremental": true
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false
   }
-}
+} 

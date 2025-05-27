@@ -1,52 +1,44 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import axios from 'axios'
 
-const Register = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+function Register({ onAuth }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const response = await fetch('http://localhost:3000/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur d\'inscription');
-      }
-
-      navigate('/login');
+      const response = await axios.post('http://localhost:3000/auth/register', {
+        email,
+        password,
+      })
+      onAuth(response.data.user, response.data.access_token)
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Une erreur est survenue')
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Créer un compte
+            Inscription
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="sr-only">Email</label>
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
               <input
                 id="email"
                 name="email"
@@ -59,7 +51,9 @@ const Register = () => {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">Mot de passe</label>
+              <label htmlFor="password" className="sr-only">
+                Mot de passe
+              </label>
               <input
                 id="password"
                 name="password"
@@ -82,9 +76,17 @@ const Register = () => {
             </button>
           </div>
         </form>
+        <div className="text-center">
+          <Link
+            to="/login"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Déjà un compte ? Se connecter
+          </Link>
+        </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Register; 
+export default Register 

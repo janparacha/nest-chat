@@ -1,265 +1,305 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { useState, useEffect, useRef } from 'react'
+import { io } from 'socket.io-client'
+import axios from 'axios'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
-const Chat = () => {
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
-  const [users, setUsers] = useState([]);
-  const [selectedColor, setSelectedColor] = useState('#3498db');
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState(new Set());
-  const messagesEndRef = useRef(null);
-  const socketRef = useRef();
-  const navigate = useNavigate();
+// Composant pour la liste des utilisateurs
+const UserList = ({ users, selectedUser, onSelectUser }) => (
+  <div className="overflow-y-auto h-[calc(100vh-120px)]">
+    {users.map((u) => (
+      <div
+        key={u.id}
+        onClick={() => onSelectUser(u)}
+        className={`p-4 cursor-pointer hover:bg-gray-50 ${
+          selectedUser?.id === u.id ? 'bg-gray-100' : ''
+        }`}
+      >
+        <div className="flex items-center">
+          <div
+            className="w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: u.color }}
+          />
+          <span>{u.email}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+// Composant pour l'en-tête avec les informations de l'utilisateur
+const ChatHeader = ({ user, onLogout, currentColor, onColorChange }) => (
+  <div className="p-4 border-b">
+    <div className="flex items-center justify-between">
+      <span className="font-semibold">{user.email}</span>
+      <button
+        onClick={onLogout}
+        className="px-3 py-1 text-sm text-white bg-red-500 rounded hover:bg-red-600"
+      >
+        Déconnexion
+      </button>
+    </div>
+    <div className="mt-4">
+      <label className="block text-sm font-medium text-gray-700">Couleur du prochain message</label>
+      <input
+        type="color"
+        value={currentColor}
+        onChange={(e) => onColorChange(e.target.value)}
+        className="w-full h-8 mt-1"
+      />
+    </div>
+  </div>
+)
+
+// Composant pour un message individuel
+const Message = ({ message, isOwnMessage }) => (
+  <div
+    className={`mb-4 ${
+      isOwnMessage ? 'text-right' : 'text-left'
+    }`}
+  >
+    <div
+      className={`inline-block p-3 rounded-lg text-white`}
+      style={{
+        backgroundColor: message.color
+      }}
+    >
+      {message.content}
+    </div>
+    <div className="text-xs text-gray-500 mt-1">
+      {format(new Date(message.createdAt), 'HH:mm', { locale: fr })}
+    </div>
+  </div>
+)
+
+// Composant pour la zone de messages
+const MessageList = ({ messages, currentUserId, messagesEndRef }) => (
+  <div className="flex-1 overflow-y-auto p-4">
+    {messages.map((message) => (
+      <Message
+        key={message.id}
+        message={message}
+        isOwnMessage={message.sender.id === currentUserId}
+      />
+    ))}
+    <div ref={messagesEndRef} />
+  </div>
+)
+
+// Composant pour le formulaire d'envoi de message
+const MessageForm = ({ newMessage, onMessageChange, onSendMessage, isConnected }) => (
+  <form onSubmit={onSendMessage} className="p-4 bg-white shadow">
+    <div className="flex">
+      <input
+        type="text"
+        value={newMessage}
+        onChange={(e) => onMessageChange(e.target.value)}
+        placeholder="Écrivez votre message..."
+        className="flex-1 p-2 border rounded-l focus:outline-none focus:border-blue-500"
+        disabled={!isConnected}
+      />
+      <button
+        type="submit"
+        className={`px-4 py-2 text-white rounded-r ${
+          isConnected
+            ? 'bg-blue-500 hover:bg-blue-600'
+            : 'bg-gray-400 cursor-not-allowed'
+        }`}
+        disabled={!isConnected}
+      >
+        Envoyer
+      </button>
+    </div>
+    {!isConnected && (
+      <div className="mt-2 text-sm text-red-500">
+        Déconnecté du serveur. Tentative de reconnexion...
+      </div>
+    )}
+  </form>
+)
+
+function Chat({ user, onLogout, sessionId }) {
+  const [users, setUsers] = useState([])
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [newMessage, setNewMessage] = useState('')
+  const [isConnected, setIsConnected] = useState(false)
+  const [currentColor, setCurrentColor] = useState(user.color || '#3498db')
+  const socketRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('email');
-    
-    if (!token) {
-      navigate('/login');
-      return;
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem(`token_${sessionId}`)
+        const response = await axios.get('http://localhost:3000/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        setUsers(response.data.filter(u => u.id !== user.id))
+      } catch (error) {
+        console.error('Erreur lors de la récupération des utilisateurs:', error)
+      }
     }
 
-    console.log('Connexion au serveur avec token:', token);
-    console.log('Email de l\'utilisateur:', email);
-    
-    // Récupérer les informations de l'utilisateur actuel
-    fetch('http://localhost:3000/verify', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Informations utilisateur:', data);
-      setCurrentUser(data);
-    })
-    .catch(error => {
-      console.error('Erreur lors de la récupération des informations utilisateur:', error);
-    });
-    
+    fetchUsers()
+  }, [user.id, sessionId])
+
+  useEffect(() => {
+    const token = localStorage.getItem(`token_${sessionId}`)
+    if (!token) return
+
     socketRef.current = io('http://localhost:3000', {
       auth: { token },
-      withCredentials: true,  // Ajout de cette option pour les cookies
-      transports: ['websocket']  // Forcer l'utilisation de WebSocket
-    });
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    })
 
     socketRef.current.on('connect', () => {
-      console.log('Connecté au serveur avec ID:', socketRef.current.id);
-    });
+      console.log('Connecté au serveur WebSocket')
+      setIsConnected(true)
+    })
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Déconnecté du serveur WebSocket')
+      setIsConnected(false)
+    })
 
     socketRef.current.on('connect_error', (error) => {
-      console.error('Erreur de connexion:', error);
-      console.error('Détails de l\'erreur:', error.message);
-    });
-
-    socketRef.current.on('userConnected', (user) => {
-      console.log('Utilisateur connecté:', user);
-      setUsers((prevUsers) => {
-        // Éviter les doublons
-        if (prevUsers.some(u => u.id === user.id)) {
-          return prevUsers;
-        }
-        return [...prevUsers, user];
-      });
-    });
-
-    socketRef.current.on('userDisconnected', (user) => {
-      console.log('Utilisateur déconnecté:', user);
-      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== user.id));
-    });
+      console.error('Erreur de connexion WebSocket:', error)
+      setIsConnected(false)
+    })
 
     socketRef.current.on('newMessage', (message) => {
-      console.log('Nouveau message reçu:', message);
-      setMessages((prevMessages) => {
-        console.log('Messages précédents:', prevMessages);
-        const newMessages = [...prevMessages, message];
-        console.log('Nouveaux messages:', newMessages);
-        return newMessages;
-      });
-    });
+      if (
+        (message.sender.id === user.id && message.receiver.id === selectedUser?.id) ||
+        (message.sender.id === selectedUser?.id && message.receiver.id === user.id)
+      ) {
+        setMessages((prevMessages) => [...prevMessages, message])
+      }
+    })
+
+    socketRef.current.on('userConnected', (connectedUser) => {
+      if (connectedUser.id === user.id) return
+      
+      setUsers((prevUsers) => {
+        if (prevUsers.find(u => u.id === connectedUser.id)) {
+          return prevUsers
+        }
+        return [...prevUsers, connectedUser]
+      })
+    })
+
+    socketRef.current.on('userDisconnected', (disconnectedUser) => {
+      setUsers((prevUsers) =>
+        prevUsers.filter((u) => u.id !== disconnectedUser.id)
+      )
+    })
 
     return () => {
       if (socketRef.current) {
-        console.log('Déconnexion du socket');
-        socketRef.current.disconnect();
+        socketRef.current.disconnect()
       }
-    };
-  }, [navigate]);
-
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (message.trim() && socketRef.current) {
-      console.log('Envoi du message:', message);
-      socketRef.current.emit('sendMessage', {
-        content: message,
-        receiverId: 'general', // Pour le chat général
-      });
-      setMessage('');
     }
-  };
-
-  const handleColorChange = async (color) => {
-    try {
-      const response = await fetch('http://localhost:3000/user/profile/color', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ color }),
-      });
-
-      if (response.ok) {
-        setSelectedColor(color);
-        setShowColorPicker(false);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de la couleur:', error);
-    }
-  };
-
-  const handleTyping = () => {
-    if (socketRef.current) {
-      socketRef.current.emit('typing', { isTyping: true });
-      setTimeout(() => {
-        socketRef.current.emit('typing', { isTyping: false });
-      }, 2000);
-    }
-  };
+  }, [sessionId, user.id, selectedUser?.id])
 
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.on('userTyping', ({ userId, isTyping }) => {
-        setTypingUsers(prev => {
-          const newSet = new Set(prev);
-          if (isTyping) {
-            newSet.add(userId);
-          } else {
-            newSet.delete(userId);
-          }
-          return newSet;
-        });
-      });
+    if (selectedUser) {
+      const fetchMessages = async () => {
+        try {
+          const token = localStorage.getItem(`token_${sessionId}`)
+          const response = await axios.get(`http://localhost:3000/messages/with/${selectedUser.id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+          setMessages(response.data)
+        } catch (error) {
+          console.error('Erreur lors de la récupération des messages:', error)
+        }
+      }
+
+      fetchMessages()
+    } else {
+      setMessages([])
     }
-  }, []);
+  }, [selectedUser, sessionId])
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !selectedUser || !isConnected) return
+
+    try {
+      socketRef.current.emit('sendMessage', {
+        content: newMessage,
+        receiverId: selectedUser.id,
+        color: currentColor,
+      })
+      setNewMessage('')
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du message:', error)
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="text-xl font-semibold mb-4">Utilisateurs en ligne</h2>
-          <div className="space-y-2">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors duration-200"
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: user.color }}
-                />
-                <span className="truncate">{user.email}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-4 border-t mt-auto">
-          <button
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
-          >
-            Changer ma couleur
-          </button>
-          {showColorPicker && (
-            <div className="mt-2 p-2 bg-white rounded-lg shadow-lg">
-              <input
-                type="color"
-                value={selectedColor}
-                onChange={(e) => handleColorChange(e.target.value)}
-                className="w-full h-10 rounded cursor-pointer"
-              />
-            </div>
-          )}
-        </div>
+      <div className="w-1/4 bg-white shadow-lg">
+        <ChatHeader
+          user={user}
+          onLogout={onLogout}
+          currentColor={currentColor}
+          onColorChange={setCurrentColor}
+        />
+        <UserList
+          users={users}
+          selectedUser={selectedUser}
+          onSelectUser={setSelectedUser}
+        />
       </div>
-
-      {/* Chat area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center text-gray-500 mt-10">
-              Aucun message. Commencez à discuter !
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  msg.sender.id === currentUser?.id ? 'justify-end' : 'justify-start'
-                }`}
-              >
+        {selectedUser ? (
+          <>
+            <div className="p-4 bg-white shadow">
+              <div className="flex items-center">
                 <div
-                  className="max-w-xs p-3 rounded-lg shadow-md"
-                  style={{
-                    backgroundColor: msg.sender.color,
-                    color: 'white',
-                  }}
-                >
-                  <div className="text-sm font-semibold">{msg.sender.email}</div>
-                  <div className="mt-1">{msg.content}</div>
-                  <div className="text-xs opacity-75 mt-1">
-                    {format(new Date(msg.createdAt || Date.now()), 'HH:mm', { locale: fr })}
-                  </div>
-                </div>
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: selectedUser.color }}
+                />
+                <span className="font-semibold">{selectedUser.email}</span>
               </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {typingUsers.size > 0 && (
-          <div className="px-4 py-2 text-sm text-gray-500 italic">
-            {Array.from(typingUsers).length} utilisateur(s) en train d'écrire...
+            </div>
+            <MessageList
+              messages={messages}
+              currentUserId={user.id}
+              messagesEndRef={messagesEndRef}
+            />
+            <MessageForm
+              newMessage={newMessage}
+              onMessageChange={setNewMessage}
+              onSendMessage={handleSendMessage}
+              isConnected={isConnected}
+            />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            Sélectionnez un utilisateur pour commencer à discuter
           </div>
         )}
-
-        <form onSubmit={handleSendMessage} className="p-4 bg-white border-t">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleTyping}
-              className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow duration-200"
-              placeholder="Écrivez votre message..."
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
-            >
-              Envoyer
-            </button>
-          </div>
-        </form>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Chat; 
+export default Chat 
