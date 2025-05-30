@@ -11,32 +11,35 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
 
   backend:
-    build: ./back
+    image: node:18
     ports:
       - "3000:3000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/chat_db
+    working_dir: /app
     volumes:
       - ./back:/app
-      - /app/node_modules
+    command:  sh -c "npm install && npx prisma migrate deploy && npm run start:dev"
 
   frontend:
-    build: ./front
+    image: node:18
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
     ports:
       - "5173:5173"
     volumes:
       - ./front:/app
-      - /app/node_modules
     depends_on:
       - backend
 
