@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface MessageFormProps {
-  onSendMessage: (content: string, color: string) => Promise<void>;
+  onSendMessage: (content: string, color: string) => void;
 }
 
 export const MessageForm: React.FC<MessageFormProps> = ({ onSendMessage }) => {
@@ -17,7 +17,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onSendMessage }) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    await onSendMessage(newMessage, selectedColor);
+    onSendMessage(newMessage, selectedColor);
     setNewMessage('');
   };
 
@@ -30,16 +30,16 @@ export const MessageForm: React.FC<MessageFormProps> = ({ onSendMessage }) => {
           onChange={handleColorChange}
           className="color-picker"
         />
-        <span style={{ color: selectedColor }}>Selected Color</span>
+        <span style={{ color: selectedColor }}>Couleur choisie</span>
       </div>
       <input
         type="text"
         value={newMessage}
         onChange={(e) => setNewMessage(e.target.value)}
-        placeholder="Type a message..."
+        placeholder="Ecrivez votre message..."
         className="message-input"
       />
-      <button type="submit" className="send-button">Send</button>
+      <button type="submit" className="send-button">Envoyer</button>
     </form>
   );
 }; 

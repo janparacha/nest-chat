@@ -21,9 +21,9 @@ export const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, username, o
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <span className="username">Welcome, {username}!</span>
+        <span className="username">Salut {username}!</span>
         <button onClick={onLogout} className="logout-button">
-          Logout
+          Déconnexion
         </button>
       </div>
       <MessageList messages={messages} />

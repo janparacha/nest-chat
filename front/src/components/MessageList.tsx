@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Message } from './Message';
 
 interface MessageType {
@@ -14,9 +14,18 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages }: MessageListProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const uniqueMessages = messages.filter((msg, index, self) =>
     index === self.findIndex((m) => m.id === msg.id)
   );
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   return (
     <div className="messages">
@@ -30,6 +39,7 @@ export function MessageList({ messages }: MessageListProps) {
           createdAt={message.createdAt}
         />
       ))}
+      <div ref={messagesEndRef} />
     </div>
   );
 } 

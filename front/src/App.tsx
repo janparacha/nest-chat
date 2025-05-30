@@ -18,7 +18,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
-  const [error, setError] = useState('')
   const [username, setUsername] = useState('')
 
   const connectSocket = () => {
@@ -44,6 +43,11 @@ function App() {
     if (!socket) {
       connectSocket()
     }
+    return () => {
+      if (socket) {
+        socket.close()
+      }
+    }
   }, [])
 
   const handleRegister = async (username: string, email: string, password: string) => {
@@ -54,10 +58,10 @@ function App() {
         setUsername(username)
         setIsLoggedIn(true)
       } else {
-        setError(response.error)
+        console.log(response.error)
       }
     } catch (error) {
-      setError('Registration failed')
+      console.log('Registration failed')
     }
   }
 
@@ -69,21 +73,22 @@ function App() {
         setUsername(response.username)
         setIsLoggedIn(true)
       } else {
-        setError(response.error)
+        console.log(response.error)
       }
     } catch (error) {
-      setError('Login failed')
+      console.log('Login failed')
     }
   }
 
   const handleLogout = () => {
+    if (socket) {
+      socket.disconnect()
+      setSocket(null)
+    }
     setIsLoggedIn(false)
     setUsername('')
     setMessages([])
-    if (socket) {
-      socket.close()
-      setSocket(null)
-    }
+    connectSocket()
   }
 
   const handleSendMessage = async (content: string, color: string) => {
@@ -93,7 +98,7 @@ function App() {
       color,
     })
     if (!response.success) {
-      setError('Failed to send message')
+      console.log("Erreur lors de l'envoi du message")
     }
   }
 

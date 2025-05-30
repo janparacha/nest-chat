@@ -29,6 +29,9 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   async handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+    // Nettoyer les données du client
+    delete client.data.userId;
+    delete client.data.username;
   }
 
   @SubscribeMessage('register')

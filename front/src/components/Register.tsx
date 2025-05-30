@@ -14,7 +14,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !email.trim() || !password.trim()) {
-      setError('All fields are required');
+      setError('Veuillez remplir tous les champs');
       return;
     }
     setError('');
@@ -24,13 +24,13 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin 
   return (
     <div className="auth-container">
       <form onSubmit={handleSubmit}>
-        <h2>Register</h2>
+        <h2>Inscription</h2>
         {error && <div className="error-message">{error}</div>}
         <input
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
+          placeholder="Pseudo"
         />
         <input
           type="email"
@@ -42,11 +42,11 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin 
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder="Mot de passe"
         />
-        <button type="submit">Register</button>
+        <button type="submit">S'inscrire</button>
         <button type="button" onClick={onSwitchToLogin} className="switch-button">
-          Already have an account? Login
+          Si vous avez déjà un compte, connectez-vous
         </button>
       </form>
     </div>
